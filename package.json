@@ -5,7 +5,7 @@
 	"private": true,
 	"description": "SvelteCMS 插件开发模板——改名即用的脚手架",
 	"engines": {
-		"node": ">=20"
+		"node": ">=24"
 	},
 	"packageManager": "pnpm@11.24.0",
 	"scripts": {
