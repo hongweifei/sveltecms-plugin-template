@@ -1,0 +1,5 @@
+{
+	// TS/语言服务统一走模板 tsconfig——$lib 与宿主 .sveltecms/ 类型层由此解析
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true
+}

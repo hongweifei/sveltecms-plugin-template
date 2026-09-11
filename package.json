@@ -1,0 +1,34 @@
+{
+	"name": "sveltecms-plugin-template",
+	"version": "0.1.0",
+	"type": "module",
+	"private": true,
+	"description": "SvelteCMS 插件开发模板——改名即用的脚手架",
+	"engines": {
+		"node": ">=20"
+	},
+	"packageManager": "pnpm@11.24.0",
+	"scripts": {
+		"ensure": "node scripts/ensure-host.mjs",
+		"rename": "node scripts/rename.mjs",
+		"dev": "node scripts/ensure-host.mjs && concurrently -k -n host,watch -c cyan,green \"pnpm --dir .sveltecms exec vite dev --port 5179 --strictPort\" \"node scripts/sync-watch.mjs\"",
+		"test": "node scripts/ensure-host.mjs && vitest run",
+		"test:watch": "node scripts/ensure-host.mjs && vitest",
+		"check": "node scripts/ensure-host.mjs && svelte-check --tsconfig ./tsconfig.json",
+		"e2e": "node scripts/ensure-host.mjs && playwright test",
+		"package": "node scripts/package.mjs"
+	},
+	"devDependencies": {
+		"@libsql/client": "^0.17.3",
+		"@playwright/test": "1.61.1",
+		"@sveltejs/kit": "^2.70.2",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"adm-zip": "^0.6.0",
+		"concurrently": "^9.1.0",
+		"drizzle-orm": "^0.45.2",
+		"svelte": "^5.56.8",
+		"svelte-check": "^4.7.6",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.10"
+	}
+}

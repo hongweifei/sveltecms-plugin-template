@@ -1,0 +1,4 @@
+{
+	// 打开本仓自动推荐：Svelte 官方扩展（.svelte 的 runes/TS 语法提示与 check）
+	"recommendations": ["svelte.svelte-vscode", "unifiedjs.vscode-prettier"]
+}
