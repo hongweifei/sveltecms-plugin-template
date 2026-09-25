@@ -1,0 +1,13 @@
+# MAINT-12: 统一行尾为 LF，消除 Windows 下 CRLF 噪音；二进制文件不参与文本转换。
+* text=auto eol=lf
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.gif -text
+*.webp -text
+*.ico -text
+*.woff -text
+*.woff2 -text
+*.ttf -text
+*.eot -text
+*.zip -text
