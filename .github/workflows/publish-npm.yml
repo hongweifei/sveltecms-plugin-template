@@ -1,9 +1,9 @@
 name: Publish npm
 
 # 与 Release（zip）并存的第二条交付路：npm 包。两者产物同源——
-# zip 由 scripts/package.mjs 摊平 plugin/ 内容到 zip 根，npm 由
-# scripts/prepare-npm-pkg.mjs 摊平到 dist/npm/，宿主两条路都按同一个
-# 身份（manifest.name）认包。
+# zip 由 scripts/package.mjs 把 plugin/ 内容摊到 zip 根，npm 由
+# scripts/prepare-npm-pkg.mjs 摊到 dist/npm/，宿主两条路都按同一身份
+# （manifest.name）认插件。
 
 on:
   push:
@@ -12,9 +12,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # 未配置 NPM_TOKEN 时整个 job 跳过——fork 出来的模板仓库不该被迫拥有
-    # 一条注定失败的发布流水线（clone 即用是模板的基本承诺）
-    if: env.NPM_TOKEN != ''
     environment: npm-publish
     permissions:
       contents: read
@@ -22,26 +19,47 @@ jobs:
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
+      # 门禁放在步骤里，不用 job 级 if 判 env：job 级 if 能否读 job 级 env 存在版本/文档
+      # 口径差异，fork 出来的模板仓不该依赖这种含糊语义。steps 输出用于 step 级 if 是
+      # 明确支持的，且这段 shell 判断可本地复现。
+      - name: 检测是否配置了 NPM_TOKEN
+        id: gate
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::未配置 NPM_TOKEN，跳过 npm 发布（zip Release 不受影响）"
+          fi
+
       - uses: pnpm/action-setup@v4
+        if: steps.gate.outputs.has_token == 'true'
         with:
           version: 11.24.0
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.has_token == 'true'
       - uses: actions/setup-node@v4
+        if: steps.gate.outputs.has_token == 'true'
         with:
           node-version: 24
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
-      - run: pnpm install --frozen-lockfile --prod=false
-      - run: pnpm check
-      - run: pnpm test
-
+      - name: 构建与门禁
+        if: steps.gate.outputs.has_token == 'true'
+        run: |
+          pnpm install --frozen-lockfile --prod=false
+          pnpm check
+          pnpm test
       - name: 生成摊平的发布物 dist/npm/
+        if: steps.gate.outputs.has_token == 'true'
         run: node scripts/prepare-npm-pkg.mjs
 
       - name: 结构自检（plugin.ts 必须在包根，否则宿主发现不到）
+        if: steps.gate.outputs.has_token == 'true'
         run: test -f dist/npm/plugin.ts
 
       - name: Publish
+        if: steps.gate.outputs.has_token == 'true'
         run: npm publish ./dist/npm --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
