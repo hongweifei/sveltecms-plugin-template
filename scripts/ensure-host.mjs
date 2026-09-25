@@ -92,7 +92,24 @@ function syncPlugin() {
 function ensure() {
 	if (!hostCloned()) {
 		console.log(`[host] 首次装配：clone ${REPO} (${REF}) → .sveltecms/（几分钟）`);
-		sh('git', ['clone', '--depth', '1', '--branch', REF, REPO, HOST]);
+		try {
+			sh('git', ['clone', '--depth', '1', '--branch', REF, REPO, HOST]);
+		} catch {
+			// 不甩 Node 栈：这条失败在 CI 上是结构性的，不是瞬时抖动
+			console.error(`[host] clone 失败：${REPO}`);
+			console.error(
+				'[host] 若在 GitHub Actions 等境外 runner 上运行：默认源是 gitee，而 gitee 常直接重置境外连接。'
+			);
+			console.error('[host] 二选一：');
+			console.error(
+				'[host]   ① 给框架仓加一个 GitHub 镜像，并只在该 workflow 里设 SVELTECMS_REPO 指它'
+			);
+			console.error('[host]      （本地开发者仍走默认的 gitee，两边互不影响）');
+			console.error(
+				'[host]   ② 把需要宿主的 job（test/check/e2e）放到国内可达的 runner 上跑'
+			);
+			process.exit(1);
+		}
 	} else if (process.env.SVELTECMS_HOST_PULL === '1') {
 		// 可选增量（默认关——装配后宿主锁定在 clone 时的 commit，行为可复现）
 		console.log('[host] git pull --depth 1…');
