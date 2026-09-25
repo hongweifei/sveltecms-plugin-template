@@ -12,7 +12,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: npm-publish
+    # 不要写 environment: <名字>——本仓（及 fork 出的模板仓）没有创建任何 environment，
+    # 引用不存在的 environment 会让 job 直接失败（实测：publish-npm 首跑即挂）。
     permissions:
       contents: read
       id-token: write

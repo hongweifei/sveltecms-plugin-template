@@ -60,6 +60,9 @@ function hostCloned() {
 }
 
 function rmrf(dir) {
+	// 不存在 = 无需移除，不算失败（clone 半途失败后 git 常已自行清理，若在此抛出
+	// 会让重试的 catch 再抛出去，退化成裸 Node 栈）
+	if (!existsSync(dir)) return;
 	// 整体移除自建运行副本。统一走 cmd.exe/rm 显式解释器——裸 'cmd' 在部分
 	// Windows 环境 spawn 直接 EPERM（与 pnpm shim EINVAL 同一族问题）
 	if (process.platform === 'win32') {
@@ -67,6 +70,11 @@ function rmrf(dir) {
 	} else {
 		execFileSync('rm', ['-rf', dir], { stdio: 'ignore' });
 	}
+}
+
+/** 同步等待——脚本全程是同步的（execFileSync），不为一次重试改成 async */
+function sleep(ms) {
+	Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function syncPlugin() {
@@ -92,23 +100,33 @@ function syncPlugin() {
 function ensure() {
 	if (!hostCloned()) {
 		console.log(`[host] 首次装配：clone ${REPO} (${REF}) → .sveltecms/（几分钟）`);
-		try {
-			sh('git', ['clone', '--depth', '1', '--branch', REF, REPO, HOST]);
-		} catch {
-			// 不甩 Node 栈：这条失败在 CI 上是结构性的，不是瞬时抖动
-			console.error(`[host] clone 失败：${REPO}`);
-			console.error(
-				'[host] 若在 GitHub Actions 等境外 runner 上运行：默认源是 gitee，而 gitee 常直接重置境外连接。'
-			);
-			console.error('[host] 二选一：');
-			console.error(
-				'[host]   ① 给框架仓加一个 GitHub 镜像，并只在该 workflow 里设 SVELTECMS_REPO 指它'
-			);
-			console.error('[host]      （本地开发者仍走默认的 gitee，两边互不影响）');
-			console.error(
-				'[host]   ② 把需要宿主的 job（test/check/e2e）放到国内可达的 runner 上跑'
-			);
-			process.exit(1);
+		// 有界重试：gitee 对境外 runner 是「可达但不稳」（同一条 clone 步骤在 CI 里
+		// 有过 success 也有过 Connection reset），所以不把它当结构性封锁处理，先重试。
+		// 每次重试前必须清掉半成品目录，否则 git 报 destination path exists。
+		const ATTEMPTS = 3;
+		for (let i = 1; ; i++) {
+			try {
+				sh('git', ['clone', '--depth', '1', '--branch', REF, REPO, HOST]);
+				break;
+			} catch {
+				rmrf(HOST);
+				if (i < ATTEMPTS) {
+					console.log(`[host] clone 第 ${i}/${ATTEMPTS} 次失败，重试…`);
+					sleep(2000 * i);
+					continue;
+				}
+				console.error(`[host] clone 失败（已重试 ${ATTEMPTS} 次）：${REPO}`);
+				console.error(
+					'[host] 若在 GitHub Actions 等境外 runner 上运行：默认源是 gitee，境外连接常被重置。'
+				);
+				console.error('[host] 可选项：');
+				console.error(
+					'[host]   ① 在该 workflow 里设 SVELTECMS_REPO 指向框架仓的 GitHub 镜像（本地默认仍走 gitee）'
+				);
+				console.error('[host]   ② 把需要宿主的 job（test/check/e2e）放到国内可达的 runner');
+				console.error('[host]   ③ 给 .sveltecms 加 actions/cache，把 clone 从每次冷跑里摘出去');
+				process.exit(1);
+			}
 		}
 	} else if (process.env.SVELTECMS_HOST_PULL === '1') {
 		// 可选增量（默认关——装配后宿主锁定在 clone 时的 commit，行为可复现）
