@@ -44,6 +44,7 @@ scripts/
   ensure-host.mjs  宿主自动装配（clone + install + 生成层补齐 + 挂载插件）
   sync-watch.mjs   plugin/ 热同步（pnpm dev 的 watch 侧）
   package.mjs      打发布 zip + SHA-256
+  prepare-npm-pkg.mjs  生成摊平的 npm 发布物 dist/npm/（含包名护栏）
   reset-e2e-db.mjs 擦净 e2e 数据库
 e2e/warmup.global.ts  dev 冷编译预热（best-effort）
 .sveltecms/        框架 checkout（自动创建，gitignore，勿手改）
@@ -58,6 +59,7 @@ pnpm test         # vitest（装配检查 + 单测/渲染测试）
 pnpm check        # svelte-check 类型门禁
 pnpm e2e          # Playwright 全链路（起宿主 dev 跑冒烟）
 pnpm package      # dist/<name>-<version>.zip + SHA-256
+pnpm npm-pkg      # dist/npm/ 摊平发布物（npm publish 的前置；见「发布与上架」）
 ```
 
 宿主版本控制：默认 clone `master`；`SVELTECMS_REF=<分支/标签>` 锁版本；
@@ -120,20 +122,42 @@ pnpm package      # dist/<name>-<version>.zip + SHA-256
 
 ## 发布与上架
 
+两条交付路，产物同源（都按 `manifest.name` 认身份）：
+
 ```bash
-pnpm package                          # dist/<name>-<version>.zip + SHA-256
-git tag v0.1.0 && git push --tags     # Release 工作流自动挂 zip
+pnpm package      # dist/<name>-<version>.zip + SHA-256
+pnpm npm-pkg      # dist/npm/（摊平发布物）→ 打印 npm publish 命令
+git tag v0.1.0 && git push --tags   # CI：挂 Release 资产；配了 NPM_TOKEN 才发 npm
 ```
 
-上架社区市场：向 [sveltecms-marketplace](https://github.com/hongweifei/sveltecms-marketplace)
+### 路 1：zip / 社区市场（主路）
+
+向 [sveltecms-marketplace](https://github.com/hongweifei/sveltecms-marketplace)
 提 PR 加一条 repo 项（发 Release 即自动上架/更新）：
 
 ```json
 { "type": "repo", "url": "github.com/<you>/sveltecms-plugin-hello-world" }
 ```
 
+### 路 2：npm 包
+
+`pnpm add sveltecms-plugin-<name>` 即可，无需 zip、无需落 `data/plugins/`。
+生产是**运行时**扫描 `node_modules` 发现它的，所以装完**重启进程**就生效、
+不必重新构建（这点和主题相反——主题的组件是编译期收录）。
+
+`dist/npm/` 是生成的：`scripts/prepare-npm-pkg.mjs` 把 `plugin/` 的内容**摊平到
+包根**——宿主的发现 glob 只认 `node_modules/sveltecms-plugin-<name>/plugin.ts`
+一层，不摊平发出去的包宿主根本看不见。模板自身 `package.json` 保持
+`private: true`（防误发模板），发布物那份不带 `private`，作者不用改这个字段。
+护栏：包名仍是 `sveltecms-plugin-template` 或不以 `sveltecms-plugin-` 开头时，
+脚本直接拒绝生成。
+
 版本号唯一事实源 = `plugin/plugin.ts` 的 `manifest.version`（package.json
 同步；`ctx.db` 数据兼容由你负责，框架提供 `migrate(from, ctx)` 钩子）。
+宿主版本兼容用 `manifest.engines.cms` 声明，见「宿主版本兼容声明」。
+
+> npm 包的 `.svelte` 组件同样可用（宿主对 `node_modules/sveltecms-plugin-*`
+> 有编译期 glob），但**装包后需重新构建**才进 bundle——这条仍是 PLN-12 的约束。
 
 ## 疑难
 

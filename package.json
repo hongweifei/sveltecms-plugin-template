@@ -16,7 +16,8 @@
 		"test:watch": "node scripts/ensure-host.mjs && vitest",
 		"check": "node scripts/ensure-host.mjs && svelte-check --tsconfig ./tsconfig.json",
 		"e2e": "node scripts/ensure-host.mjs && playwright test",
-		"package": "node scripts/package.mjs"
+		"package": "node scripts/package.mjs",
+		"npm-pkg": "node scripts/prepare-npm-pkg.mjs"
 	},
 	"devDependencies": {
 		"@libsql/client": "^0.17.3",

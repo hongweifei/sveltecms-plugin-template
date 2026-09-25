@@ -1,0 +1,47 @@
+name: Publish npm
+
+# 与 Release（zip）并存的第二条交付路：npm 包。两者产物同源——
+# zip 由 scripts/package.mjs 摊平 plugin/ 内容到 zip 根，npm 由
+# scripts/prepare-npm-pkg.mjs 摊平到 dist/npm/，宿主两条路都按同一个
+# 身份（manifest.name）认包。
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # 未配置 NPM_TOKEN 时整个 job 跳过——fork 出来的模板仓库不该被迫拥有
+    # 一条注定失败的发布流水线（clone 即用是模板的基本承诺）
+    if: env.NPM_TOKEN != ''
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+      - run: pnpm install --frozen-lockfile --prod=false
+      - run: pnpm check
+      - run: pnpm test
+
+      - name: 生成摊平的发布物 dist/npm/
+        run: node scripts/prepare-npm-pkg.mjs
+
+      - name: 结构自检（plugin.ts 必须在包根，否则宿主发现不到）
+        run: test -f dist/npm/plugin.ts
+
+      - name: Publish
+        run: npm publish ./dist/npm --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
