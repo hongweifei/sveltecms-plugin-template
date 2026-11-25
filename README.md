@@ -39,12 +39,15 @@ plugin/            插件源码（唯一事实源；发布 zip 时内容直接�
   e2e/             Playwright 用例（host-helpers.ts 为宿主 e2e 基建的
                    vendored 最小移植）
   *.test.ts        vitest 测试（manifest.test.ts 是手搓 ctx 的冒烟样板）
+  plugin.js        pnpm compile 生成的预编译入口（gitignore；发布包默认入口）
+  schema.js        预编译 schema（同上）
 scripts/
   rename.mjs       一键改名
   ensure-host.mjs  宿主自动装配（clone + install + 生成层补齐 + 挂载插件）
   sync-watch.mjs   plugin/ 热同步（pnpm dev 的 watch 侧）
-  package.mjs      打发布 zip + SHA-256
-  prepare-npm-pkg.mjs  生成摊平的 npm 发布物 dist/npm/（含包名护栏）
+  compile.mjs      plugin.ts/schema.ts → plugin.js/schema.js（esbuild）
+  package.mjs      打发布 zip + SHA-256（先 compile）
+  prepare-npm-pkg.mjs  生成摊平的 npm 发布物 dist/npm/（main 指向 plugin.js）
   reset-e2e-db.mjs 擦净 e2e 数据库
 e2e/warmup.global.ts  dev 冷编译预热（best-effort）
 .sveltecms/        框架 checkout（自动创建，gitignore，勿手改）
@@ -54,13 +57,14 @@ e2e/warmup.global.ts  dev 冷编译预热（best-effort）
 ## 常用命令
 
 ```bash
-pnpm dev          # 起完整站点(5179) + 插件热同步
+pnpm dev          # 起完整站点(5179) + 插件热同步（开发期读 plugin.ts）
+pnpm compile      # 预编译：plugin.ts/schema.ts → plugin.js/schema.js
 pnpm test         # vitest（装配检查 + 单测/渲染测试）
 pnpm check        # svelte-check 类型门禁
 pnpm host:update  # 同步最新框架并重建宿主依赖与生成物
 pnpm e2e          # Playwright 全链路（起宿主 dev 跑冒烟）
-pnpm package      # dist/<name>-<version>.zip + SHA-256
-pnpm npm-pkg      # dist/npm/ 摊平发布物（npm publish 的前置；见「发布与上架」）
+pnpm package      # compile + dist/<name>-<version>.zip + SHA-256
+pnpm npm-pkg      # compile + dist/npm/ 摊平发布物（main = plugin.js）
 ```
 
 宿主版本控制：默认 clone `master`；`SVELTECMS_REF=<分支/标签>` 锁版本；
@@ -127,13 +131,22 @@ clone/update 的 commit，行为可复现。
 
 ## 发布与上架
 
-两条交付路，产物同源（都按 `manifest.name` 认身份）：
+两条交付路，产物同源（都按 `manifest.name` 认身份；都先 `pnpm compile` 生成预编译入口）：
 
 ```bash
-pnpm package      # dist/<name>-<version>.zip + SHA-256
-pnpm npm-pkg      # dist/npm/（摊平发布物）→ 打印 npm publish 命令
+pnpm package      # compile + dist/<name>-<version>.zip + SHA-256
+pnpm npm-pkg      # compile + dist/npm/（摊平发布物，main = plugin.js）→ 打印 npm publish 命令
 git tag v0.1.0 && git push --tags   # CI：挂 Release 资产；配了 NPM_TOKEN 才发 npm
 ```
+
+### 预编译约定（默认）
+
+- 发布包以根层 `plugin.js` 为入口，`schema.js` 随包提供；宿主生产环境优先加载它们，
+  不再逐文件转译 TypeScript。
+- `plugin.ts` / `schema.ts` 保留为源码与开发期回退；两者同时存在时宿主优先 `plugin.js`。
+- `#lib/*`、`$lib/*`、`#app/*` 与 node_modules 在预编译时保持 external，插件与宿主共享
+  同一份注册表、数据库与门面实例。
+- 改了 `plugin.ts` 后重新 `pnpm compile`；发布脚本已自动串联，不需要手工记得。
 
 ### 路 1：zip / 社区市场（主路）
 
@@ -151,11 +164,11 @@ git tag v0.1.0 && git push --tags   # CI：挂 Release 资产；配了 NPM_TOKEN
 不必重新构建（这点和主题相反——主题的组件是编译期收录）。
 
 `dist/npm/` 是生成的：`scripts/prepare-npm-pkg.mjs` 把 `plugin/` 的内容**摊平到
-包根**——宿主的发现 glob 只认 `node_modules/sveltecms-plugin-<name>/plugin.ts`
-一层，不摊平发出去的包宿主根本看不见。模板自身 `package.json` 保持
-`private: true`（防误发模板），发布物那份不带 `private`，作者不用改这个字段。
-护栏：包名仍是 `sveltecms-plugin-template` 或不以 `sveltecms-plugin-` 开头时，
-脚本直接拒绝生成。
+包根**——宿主的发现只认 `node_modules/sveltecms-plugin-<name>/plugin.js`（或同级
+`plugin.ts`）一层，不摊平发出去的包宿主根本看不见。发布物 `main` 指向 `./plugin.js`。
+模板自身 `package.json` 保持 `private: true`（防误发模板），发布物那份不带 `private`，
+作者不用改这个字段。护栏：包名仍是 `sveltecms-plugin-template` 或不以
+`sveltecms-plugin-` 开头时，脚本直接拒绝生成。
 
 版本号唯一事实源 = `plugin/plugin.ts` 的 `manifest.version`（package.json
 同步；`ctx.db` 数据兼容由你负责，框架提供 `migrate(from, ctx)` 钩子）。

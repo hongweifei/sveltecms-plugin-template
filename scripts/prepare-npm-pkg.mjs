@@ -2,10 +2,12 @@
  * 生成 npm 发布目录 dist/npm/。
  *
  * 为什么必须摊平：宿主的包发现 glob 是
- * node_modules/sveltecms-plugin-<name>/plugin.ts（只认包根一层），
+ * node_modules/sveltecms-plugin-<name>/plugin.ts 或同级 plugin.js（只认包根一层），
  * 而模板源码在 plugin/ 子目录里。zip 那条能成立是因为 scripts/package.mjs
  * 把 plugin/ 的内容直接落在 zip 根——npm 走的是同一套摊平，两者共用一份
  * 「什么算发布物」的判断，不各说各话。不摊平发出去的包，宿主根本发现不了。
+ *
+ * 发布物以预编译入口 plugin.js 为 main；plugin.ts 保留源码便于排障与二次构建。
  *
  * 为什么模板自己的 package.json 保持 private: true：发布的是这里生成的
  * dist/npm/package.json（不带 private），模板仓自身永远发不出去——避免有人
@@ -13,10 +15,10 @@
  * 容易漏掉的坑。
  *
  * 用法：
- *   node scripts/prepare-npm-pkg.mjs          # 只生成
- *   node scripts/prepare-npm-pkg.mjs && npm publish ./dist/npm --access public
+ *   pnpm compile && node scripts/prepare-npm-pkg.mjs
+ *   npm publish ./dist/npm --access public
  */
-import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync, statSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync, statSync, rmSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,6 +52,10 @@ if (!version) {
 	console.error('[npm-pkg] 找不到版本号（plugin.ts 的 manifest.version 或 package.json.version）');
 	process.exit(1);
 }
+if (!existsSync(path.join(SRC, 'plugin.js'))) {
+	console.error('[npm-pkg] 缺少 plugin/plugin.js——先运行 pnpm compile');
+	process.exit(1);
+}
 
 // 与 package.mjs 同口径的排除规则：测试与 e2e 不是发布物
 const isPublishable = (rel) => !/\.test\.ts$|(^|[/\\])e2e([/\\]|$)/.test(rel.replaceAll('\\', '/'));
@@ -74,8 +80,8 @@ writeFileSync(
 			version,
 			description: manifestField('description') ?? pkg.description,
 			type: 'module',
-			main: './plugin.ts',
-			exports: { '.': './plugin.ts' },
+			main: './plugin.js',
+			exports: { '.': './plugin.js' },
 			// svelte 只有带组件的插件才需要；纯服务端插件不必拉这个 peer
 			peerDependencies: { svelte: '^5.0.0' },
 			peerDependenciesMeta: { svelte: { optional: true } }

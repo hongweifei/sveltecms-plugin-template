@@ -5,3 +5,7 @@ test-results/
 playwright-report/
 e2e-data/
 *.log
+
+# 预编译产物：pnpm compile / package 时生成，随发布包分发，不进源码仓
+plugin/plugin.js
+plugin/schema.js

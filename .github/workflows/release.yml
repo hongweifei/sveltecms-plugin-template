@@ -19,8 +19,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile --prod=false
-      - name: Build zip（根布局：plugin.ts 在 zip 根）
-        run: node scripts/package.mjs | tee package-out.txt
+      - name: Build zip（根布局：plugin.js 在 zip 根）
+        run: pnpm compile && node scripts/package.mjs | tee package-out.txt
       - name: Attach to GitHub Release
         uses: softprops/action-gh-release@v2
         with:

@@ -1,9 +1,11 @@
 /**
- * 打包发布 zip：plugin/ 内容直接落 zip 根（宿主安装器约定——plugin.ts 必须
- * 位于 zip 根目录，嵌套一层会被判 "Plugin zip missing plugin.ts" 并回滚）。
+ * 打包发布 zip：plugin/ 内容直接落 zip 根（宿主安装器约定——根层
+ * plugin.js（预编译，推荐）或 plugin.ts（源码）必须存在，嵌套一层会被判
+ * "Plugin zip missing plugin.ts or plugin.js" 并回滚）。
  *
  * 产出 dist/<name>-<version>.zip + 控制台打印 SHA-256（回填市场 static 项
  * 或核对 repo 项下载完整性）。name/version 读 plugin/plugin.ts 的 manifest。
+ * 先跑 pnpm compile 生成 plugin.js/schema.js；pnpm package 已串联。
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, mkdirSync } from 'node:fs';

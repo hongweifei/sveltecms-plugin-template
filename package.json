@@ -17,8 +17,9 @@
 		"test:watch": "node scripts/ensure-host.mjs && vitest",
 		"check": "node scripts/ensure-host.mjs && svelte-check --tsconfig ./tsconfig.json",
 		"e2e": "node scripts/ensure-host.mjs && playwright test",
-		"package": "node scripts/package.mjs",
-		"npm-pkg": "node scripts/prepare-npm-pkg.mjs"
+		"compile": "node scripts/compile.mjs",
+		"package": "pnpm compile && node scripts/package.mjs",
+		"npm-pkg": "pnpm compile && node scripts/prepare-npm-pkg.mjs"
 	},
 	"devDependencies": {
 		"@libsql/client": "^0.17.3",
@@ -28,6 +29,7 @@
 		"adm-zip": "^0.6.0",
 		"concurrently": "^9.1.0",
 		"drizzle-orm": "^0.45.2",
+		"esbuild": "^0.28.2",
 		"svelte": "^5.56.8",
 		"svelte-check": "^4.7.6",
 		"typescript": "^6.0.3",

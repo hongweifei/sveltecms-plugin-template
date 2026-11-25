@@ -1,0 +1,3 @@
+# pnpm 构建脚本白名单：预编译器 esbuild 需要安装平台二进制
+allowBuilds:
+  esbuild: true

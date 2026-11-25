@@ -51,13 +51,13 @@ jobs:
           pnpm install --frozen-lockfile --prod=false
           pnpm check
           pnpm test
-      - name: 生成摊平的发布物 dist/npm/
+      - name: 生成摊平的发布物 dist/npm/（含预编译入口）
         if: steps.gate.outputs.has_token == 'true'
-        run: node scripts/prepare-npm-pkg.mjs
+        run: pnpm compile && node scripts/prepare-npm-pkg.mjs
 
-      - name: 结构自检（plugin.ts 必须在包根，否则宿主发现不到）
+      - name: 结构自检（plugin.js 必须在包根，否则宿主发现不到）
         if: steps.gate.outputs.has_token == 'true'
-        run: test -f dist/npm/plugin.ts
+        run: test -f dist/npm/plugin.js && test -f dist/npm/schema.js
 
       - name: Publish
         if: steps.gate.outputs.has_token == 'true'
