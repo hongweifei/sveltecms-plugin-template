@@ -1,7 +1,7 @@
 <!--
-	[示例·后台路由页] 注册到 /admin/plugin-pages/my-plugin（ctx.route）。
+	[示例·后台路由页] 注册到 /admin/my-plugin（ctx.route）。
 	数据经自家端点 fetch（后台路由下自动带管理员会话）。进阶：可用框架的
-	ListPage/FormPage 组件（$lib/cms/components/page/*）搭管理界面。
+	ListPage/FormPage 组件（#lib/cms/components/page/*）搭管理界面。
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
@@ -35,24 +35,24 @@
 <style>
 	.page {
 		padding: 1.5rem;
-		border: 1px solid var(--color-border);
+		border: 1px solid var(--color-line);
 		border-radius: var(--radius-lg, 12px);
-		background: var(--color-bg);
+		background: var(--color-surface);
 	}
 	h2 {
 		margin: 0 0 0.5rem;
 		font-size: 1.15rem;
-		color: var(--color-text);
+		color: var(--color-fg);
 	}
 	.desc {
 		margin: 0 0 1rem;
 		font-size: 0.9rem;
-		color: var(--color-text-secondary, inherit);
+		color: var(--color-fg-muted, inherit);
 	}
 	.desc code {
 		padding: 0.1rem 0.35rem;
 		font-size: 0.85em;
-		background: var(--color-bg-tertiary, rgba(127, 127, 127, 0.12));
+		background: var(--color-surface-strong, rgba(127, 127, 127, 0.12));
 		border-radius: 4px;
 	}
 	.stat {
@@ -60,16 +60,16 @@
 		flex-direction: column;
 		gap: 0.25rem;
 		padding: 0.75rem 1.25rem;
-		border: 1px solid var(--color-border);
+		border: 1px solid var(--color-line);
 		border-radius: var(--radius-md, 8px);
 	}
 	.stat-label {
 		font-size: 0.8rem;
-		color: var(--color-text-secondary, inherit);
+		color: var(--color-fg-muted, inherit);
 	}
 	.stat-value {
 		font-size: 1.4rem;
 		font-weight: 700;
-		color: var(--color-text);
+		color: var(--color-fg);
 	}
 </style>

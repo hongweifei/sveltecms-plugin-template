@@ -10,7 +10,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { loadPluginMessages } from '$lib/cms/utils/i18n-client';
+	import { loadPluginMessages } from '#lib/cms/utils/i18n-client.ts';
 
 	const BASE = '/api/v1/plugin/my-plugin';
 
@@ -57,7 +57,7 @@
 	.tpl-block {
 		margin: 2rem 0;
 		padding: 1.25rem 1.5rem;
-		border: 1px solid var(--color-border, #e5e7eb);
+		border: 1px solid var(--color-line, #e5e7eb);
 		border-radius: var(--radius-md, 8px);
 		background: var(--color-surface, transparent);
 	}

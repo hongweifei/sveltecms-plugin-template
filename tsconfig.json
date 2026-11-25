@@ -1,24 +1,20 @@
 {
-	// 类型环境借用仓内宿主 .sveltecms/：extends 其 SvelteKit 生成层（$app/*
-	// 模块声明、$lib paths、路由类型）。paths 子级整体覆盖父级，$lib 需
-	// 重新声明指向 .sveltecms/src/lib；宿主 src/app.d.ts（Locals 增强）必须
-	// 显式 include。共享库锁本仓 node_modules 防双实例 brand 冲突。
+	// 类型环境借用仓内宿主 .sveltecms/：宿主 app.d.ts 的 Locals 增强与
+	// #lib 类型都从宿主源码解析。SvelteKit 3 把编译器基线写到
+	// node_modules/$app/tsconfig.json（不再是 .svelte-kit/tsconfig.json），
+	// 这里直接 extends 它，moduleResolution / allowImportingTsExtensions /
+	// verbatimModuleSyntax 与框架保持一致。
 	// 前提：宿主跑过 svelte-kit sync（pnpm check 的 ensure 步骤自动保证）。
-	"extends": "./.sveltecms/.svelte-kit/tsconfig.json",
+	"extends": "./.sveltecms/node_modules/$app/tsconfig.json",
 	"compilerOptions": {
-		"allowJs": true,
-		"checkJs": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true,
-		"skipLibCheck": true,
-		"sourceMap": true,
 		"strict": true,
-		"moduleResolution": "bundler",
-		"noEmit": true,
+		"sourceMap": true,
+		// 基线里的 types: ["$app/types"] 会按本仓 node_modules 解析而落空；
+		// $app/types 已由 files 显式引入，这里只声明本仓可解析的 svelte 类型
+		"types": ["svelte"],
 		"paths": {
-			"$lib": ["./.sveltecms/src/lib"],
-			"$lib/*": ["./.sveltecms/src/lib/*"],
+			"#lib": ["./.sveltecms/src/lib/index.ts"],
+			"#lib/*": ["./.sveltecms/src/lib/*"],
 			"$app/types": ["./.sveltecms/.svelte-kit/types/index.d.ts"],
 			"drizzle-orm": ["./node_modules/drizzle-orm"],
 			"drizzle-orm/*": ["./node_modules/drizzle-orm/*"],
@@ -26,11 +22,15 @@
 			"svelte/*": ["./node_modules/svelte/*"]
 		}
 	},
+	"files": [
+		// $app/types 是生成的全局类型包（路由 ID 与 $app/env/* 声明）；直接列出，
+		// 避免 types 选项按“本仓 node_modules/$app”解析而找不到。
+		".sveltecms/node_modules/$app/types/index.d.ts"
+	],
 	"include": [
 		// 宿主 SvelteKit 生成的类型层 + 全局类型增强（Locals.user 等）
 		".sveltecms/.svelte-kit/ambient.d.ts",
 		".sveltecms/.svelte-kit/non-ambient.d.ts",
-		".sveltecms/.svelte-kit/types/**/$types.d.ts",
 		".sveltecms/src/app.d.ts",
 		"plugin/**/*.ts",
 		"plugin/**/*.svelte"

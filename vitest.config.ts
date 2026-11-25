@@ -4,15 +4,15 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /**
- * 测试配置：宿主框架在仓内 .sveltecms/（ensure-host 自动装配），$lib 解析到
+ * 测试配置：宿主框架在仓内 .sveltecms/（ensure-host 自动装配），#lib 解析到
  * .sveltecms/src/lib，mock 别名复用宿主 __mocks__。pnpm test 已前置 ensure。
  */
-const HOST = path.resolve(__dirname, '.sveltecms');
+const HOST = path.resolve(import.meta.dirname, '.sveltecms');
 
 export default defineConfig({
 	resolve: {
 		alias: {
-			$lib: path.join(HOST, 'src/lib'),
+			'#lib': path.join(HOST, 'src/lib'),
 			'$env/dynamic/private': path.join(HOST, 'src/__mocks__/env.ts'),
 			'$app/environment': path.join(HOST, 'src/__mocks__/app-environment.ts'),
 			'$app/state': path.join(HOST, 'src/__mocks__/app-state.ts')

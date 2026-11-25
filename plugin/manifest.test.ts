@@ -66,6 +66,7 @@ describe('my-plugin manifest', () => {
 		expect(rec.schema).toContain('my_plugin_items');
 		expect(rec.collection.map((c) => c.slug)).toContain('my_plugin_items');
 		expect(rec.route.map((r) => r.path)).toContain('/my-plugin');
+		expect(rec.menu.find((m) => m.key === 'my-plugin')?.href).toBe('/admin/my-plugin');
 		expect(rec.slot.map((s) => s.name)).toEqual(
 			expect.arrayContaining(['frontend:content-after', 'collection-form-fields-after'])
 		);

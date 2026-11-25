@@ -13,8 +13,8 @@
  * API 面（ctx.* 13 域）速览见 README「扩展点清单」；完整类型：
  * .sveltecms/src/lib/cms/types/plugin.ts（dev 装配后可直接跳读）。
  */
-import type { Plugin } from '$lib/cms/types/plugin';
-import { registerSchema } from '$lib/cms/utils';
+import type { Plugin } from '#lib/cms/types/plugin.ts';
+import { registerSchema } from '#lib/cms/utils/index.ts';
 
 const plugin: Plugin = {
 	manifest: {
@@ -26,7 +26,7 @@ const plugin: Plugin = {
 			en: 'SvelteCMS plugin template — rename and go'
 		},
 		// 宿主兼容声明（semver；0.x 的 minor 变更即破坏）——发布时按实际下限收紧
-		engines: { cms: '>=0.1.0' },
+		engines: { cms: '^0.3' },
 		/**
 		 * [示例·配置] 站长可改的站点级设置：管理端「插件 → 配置」表单渲染，
 		 * 运行时 ctx.config.get(key, 默认值) 读取。label 用 I18nText，
@@ -106,7 +106,7 @@ const plugin: Plugin = {
 		registerPublicApi(ctx);
 
 		// ── UI 接入 ──────────────────────────────────────────────
-		// [示例·后台路由 + 菜单] 页面挂 /admin/plugin-pages/<path>，配菜单入口。
+		// [示例·后台路由 + 菜单] 页面挂 /admin/<path>，菜单 href 指向同一地址。
 		//（启用集合后侧栏「内容」菜单自动注入，无需手注册集合菜单）
 		ctx.route.register({
 			path: '/my-plugin',
@@ -119,7 +119,7 @@ const plugin: Plugin = {
 				label: '模板插件',
 				labelI18n: { en: 'My Plugin' },
 				icon: 'Puzzle',
-				href: '/admin/plugin-pages/my-plugin',
+				href: '/admin/my-plugin',
 				locations: ['admin_sidebar'],
 				group: '开发',
 				order: 120

@@ -1,4 +1,4 @@
-import type { PluginContext, PluginApiEndpoint } from '$lib/cms/types/plugin';
+import type { PluginContext, PluginApiEndpoint } from '#lib/cms/types/plugin.ts';
 import type { Item } from './types';
 
 /**

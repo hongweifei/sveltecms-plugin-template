@@ -39,9 +39,9 @@
 		margin-top: 0.25rem;
 		padding: 0.4rem 0.6rem;
 		font: inherit;
-		color: var(--color-text);
-		background: var(--color-bg);
-		border: 1px solid var(--color-border);
+		color: var(--color-fg);
+		background: var(--color-surface);
+		border: 1px solid var(--color-line);
 		border-radius: var(--radius-md, 8px);
 	}
 </style>

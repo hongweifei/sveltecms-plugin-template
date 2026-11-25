@@ -7,9 +7,10 @@
 	"engines": {
 		"node": ">=24"
 	},
-	"packageManager": "pnpm@11.24.0",
+	"packageManager": "pnpm@12.21.0",
 	"scripts": {
 		"ensure": "node scripts/ensure-host.mjs",
+		"host:update": "node scripts/ensure-host.mjs --update",
 		"rename": "node scripts/rename.mjs",
 		"dev": "node scripts/ensure-host.mjs && concurrently -k -n host,watch -c cyan,green \"pnpm --dir .sveltecms exec vite dev --port 5179 --strictPort\" \"node scripts/sync-watch.mjs\"",
 		"test": "node scripts/ensure-host.mjs && vitest run",

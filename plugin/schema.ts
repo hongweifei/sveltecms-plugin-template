@@ -1,5 +1,5 @@
 import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
-import { baseColumns } from '$lib/cms/db/schema-helpers';
+import { baseColumns } from '#lib/cms/db/schema-helpers.ts';
 
 /**
  * 插件数据表。两条命名规则（都是引擎硬校验，写错注册即失败）：

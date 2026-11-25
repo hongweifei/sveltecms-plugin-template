@@ -11,6 +11,7 @@
  *
  * 用法：
  *   node scripts/ensure-host.mjs            # 装配/刷新
+ *   node scripts/ensure-host.mjs --update   # 同步框架到 REF，重装依赖并重建生成物
  *   node scripts/ensure-host.mjs --sync     # 只同步插件源码
  *   node scripts/ensure-host.mjs --check    # 只校验已装配，未装配退出码 1
  *
@@ -44,6 +45,7 @@ const PLUGIN_DEST = path.join(HOST, 'data/plugins', NAME);
 const args = process.argv.slice(2);
 const CHECK = args.includes('--check');
 const SYNC_ONLY = args.includes('--sync');
+const UPDATE = args.includes('--update');
 
 function sh(cmd, cmdArgs, opts = {}) {
 	// Node ≥22 禁止无 shell 直启 .cmd（pnpm 在 Windows 是 cmd shim，EINVAL）；
@@ -97,6 +99,23 @@ function syncPlugin() {
 	});
 }
 
+/**
+ * 把已有宿主切到远端 REF。
+ *
+ * checkout --force 覆盖框架 tracked 文件，保留 data/ 等未跟踪产物；生成层
+ * （.svelte-kit、drizzle、paraglide）按新源码重做，避免旧版本路由类型与消息残留。
+ */
+function updateHost() {
+	console.log(`[host] 同步框架：origin/${REF}`);
+	sh('git', ['fetch', '--depth', '1', 'origin', REF], { cwd: HOST });
+	sh('git', ['checkout', '--force', 'FETCH_HEAD'], { cwd: HOST });
+	rmrf(path.join(HOST, '.svelte-kit'));
+	rmrf(path.join(HOST, 'drizzle'));
+	rmrf(path.join(HOST, 'src/lib/paraglide'));
+	console.log('[host] 安装框架依赖…');
+	sh('pnpm', ['install', '--prefer-offline'], { cwd: HOST });
+}
+
 function ensure() {
 	if (!hostCloned()) {
 		console.log(`[host] 首次装配：clone ${REPO} (${REF}) → .sveltecms/（几分钟）`);
@@ -128,10 +147,8 @@ function ensure() {
 				process.exit(1);
 			}
 		}
-	} else if (process.env.SVELTECMS_HOST_PULL === '1') {
-		// 可选增量（默认关——装配后宿主锁定在 clone 时的 commit，行为可复现）
-		console.log('[host] git pull --depth 1…');
-		sh('git', ['pull', '--depth', '1', 'origin', REF], { cwd: HOST });
+	} else if (UPDATE) {
+		updateHost();
 	}
 	if (!existsSync(path.join(HOST, 'node_modules'))) {
 		console.log('[host] 安装框架依赖 pnpm install（一次性，较慢）…');
@@ -147,7 +164,7 @@ function ensure() {
 		console.error(`[host] 修复：pnpm --dir "${HOST}" install --force`);
 		process.exit(1);
 	}
-	if (!existsSync(path.join(HOST, '.svelte-kit/tsconfig.json'))) {
+	if (!existsSync(path.join(HOST, '.svelte-kit/types'))) {
 		sh('pnpm', ['exec', 'svelte-kit', 'sync'], { cwd: HOST });
 	}
 	// 脚手架契约：drizzle/ 迁移不入 git，fresh clone 缺它则 dev 启动 runMigrations
@@ -182,7 +199,7 @@ if (CHECK) {
 	const ok =
 		hostCloned() &&
 		existsSync(path.join(HOST, 'node_modules')) &&
-		existsSync(path.join(HOST, '.svelte-kit/tsconfig.json')) &&
+		existsSync(path.join(HOST, '.svelte-kit/types')) &&
 		existsSync(path.join(HOST, 'src/lib/paraglide/messages'));
 	if (!ok) {
 		console.error(

@@ -34,10 +34,20 @@ test.describe('my-plugin 冒烟', () => {
 	test('后台插件路由页可达', async ({ browser }) => {
 		const ctx = await getAdminContext(browser);
 		const page = await ctx.newPage();
-		await page.goto('/admin/plugin-pages/my-plugin');
+		await page.goto('/admin/my-plugin');
 		await expect(page.locator('body')).toContainText('模板插件', {
 			timeout: READY_TIMEOUT
 		});
+		await ctx.close();
+	});
+
+	test('后台菜单指向规范路径', async ({ browser }) => {
+		const ctx = await getAdminContext(browser);
+		const page = await ctx.newPage();
+		await page.goto('/admin/dashboard');
+		await expect(
+			page.locator('aside a[href="/admin/my-plugin"]')
+		).toBeVisible({ timeout: READY_TIMEOUT });
 		await ctx.close();
 	});
 

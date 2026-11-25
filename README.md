@@ -57,14 +57,16 @@ e2e/warmup.global.ts  dev 冷编译预热（best-effort）
 pnpm dev          # 起完整站点(5179) + 插件热同步
 pnpm test         # vitest（装配检查 + 单测/渲染测试）
 pnpm check        # svelte-check 类型门禁
+pnpm host:update  # 同步最新框架并重建宿主依赖与生成物
 pnpm e2e          # Playwright 全链路（起宿主 dev 跑冒烟）
 pnpm package      # dist/<name>-<version>.zip + SHA-256
 pnpm npm-pkg      # dist/npm/ 摊平发布物（npm publish 的前置；见「发布与上架」）
 ```
 
 宿主版本控制：默认 clone `master`；`SVELTECMS_REF=<分支/标签>` 锁版本；
-`SVELTECMS_HOST_PULL=1 pnpm ensure` 刷新到上游最新（默认锁 clone 时 commit，
-行为可复现）；`SVELTECMS_REPO=<git URL>` 换框架源。
+`pnpm host:update` 同步上游最新框架，重装依赖并按新源码重建迁移与生成物；
+`SVELTECMS_REPO=<git URL>` 换框架源。宿主装配后默认锁定在最近一次
+clone/update 的 commit，行为可复现。
 
 ## 语法提示（IDE 零配置可用）
 
@@ -72,11 +74,14 @@ pnpm npm-pkg      # dist/npm/ 摊平发布物（npm publish 的前置；见「�
 
 | 机制 | 文件 | 作用 |
 | --- | --- | --- |
-| 宿主类型层 | `tsconfig.json`（extends `.sveltecms/.svelte-kit/tsconfig.json` + include 宿主 `app.d.ts`） | `$lib/cms/*` 的 `PluginContext`/`CollectionConfig` 全类型可跳读，`event.locals.user` 增强可用 |
+| 宿主类型层 | `tsconfig.json`（extends 宿主 `$app/tsconfig`，显式引入 `$app/types` 与宿主 `app.d.ts`） | `#lib/cms/*` 的 `PluginContext`/`CollectionConfig` 全类型可跳读，`event.locals.user` 增强可用 |
 | Svelte 语言服务 | `svelte.config.js`（runes: true + vitePreprocess） | `.svelte` 里 `$state/$derived/$props` 正确解析，按 Svelte 5 写 |
 | TS 版本对齐 | `.vscode/settings.json`（tsdk 指向本仓 typescript） | 编辑器与 `pnpm check` 同版本，提示=门禁 |
 | 行类型派生 | `plugin/types.ts`（interface + InferSelectModel 一致性断言） | `ctx.db.find<Item>(...)` 字段直接补全；schema 漂移编译即错 |
 | 契约名补全 | 宿主类型层（`SlotName`/`CmsEvents`/`MenuIconName`/`FilterHookName`，开放联合不拒自定义） | `ctx.slot.register('…')`、`ctx.event.on('…')`、`ctx.menu` 的 icon、`ctx.filters` 挂点都有字面量补全（宿主 pull 后生效） |
+
+导入统一走 `#lib/...`（SvelteKit 3 已移除 `$lib`），TS 模块带 `.ts` 后缀、
+组件带 `.svelte`。
 
 提示不新鲜时：VS Code `Ctrl+Shift+P → Restart TS Server`（ensure 装配刷新过
 `.svelte-kit/types` 之后执行一次）。`pnpm check` 始终是唯一裁判——它过了，
@@ -89,7 +94,7 @@ pnpm npm-pkg      # dist/npm/ 摊平发布物（npm publish 的前置；见「�
 | `ctx.collection` | 注册集合 → 后台「内容」菜单 + 通用 CRUD/RBAC/搜索 | ✅ |
 | `ctx.schema` | drizzle 表登记，引擎自动建表（`plugin_<名>_` 前缀强制） | ✅ |
 | `ctx.api` | `/api/v1/plugin/<名>/*`；`public: true` 免登录，否则管理员会话 | ✅ |
-| `ctx.route` | 后台页挂 `/admin/plugin-pages/*` | ✅ |
+| `ctx.route` | 后台页挂 `/admin/<path>` | ✅ |
 | `ctx.menu` | 侧栏菜单项（集合菜单自动注入，这里注册自定义页入口） | ✅ |
 | `ctx.slot` | 组件插槽：前台 `frontend:content-after`、管理端 `collection-form-fields-after`、`dashboard-widget` 等，全清单见 `.sveltecms/src/lib/cms/registries/slot.ts` | ✅ |
 | `ctx.i18n` | 文案注册；服务端 `ctx.i18n.t()`，前台 `loadPluginMessages('<名>')` | ✅ |
@@ -163,7 +168,7 @@ git tag v0.1.0 && git push --tags   # CI：挂 Release 资产；配了 NPM_TOKEN
 
 - **改了插件服务端代码不生效** → 后台「插件管理 → 重载」或重启 dev（SSR
   import 缓存，见「三步上手」）
-- **`pnpm test` 报 `$lib` 解析失败** → `pnpm ensure` 重装配（宿主缺生成层）
+- **`pnpm test` 报 `#lib` 解析失败** → `pnpm ensure` 重装配（宿主缺生成层）
 - **e2e 首跑超时的用例轮换** → dev 冷编译竞态；warmup 已吸收大半，CI 有
   retries；本地重跑即绿
 - **想参考完整实战** → 官方评论插件仓库 `sveltecms-plugin-comments`（本
